@@ -26,4 +26,13 @@ app.get('/getProducts', async function(request, response) {
   response.send(products);
 });
 
+async function getUsers() {
+  return await makeQuery('SELECT * FROM user');
+}
+
+app.get('/getUsers', async function(request, response) {
+  let users = await getUsers();
+  response.send(users);
+});
+
 app.listen(process.env.PORT || 5000);
