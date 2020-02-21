@@ -44,4 +44,13 @@ app.get('/getCategories', async function(request, response) {
   response.send(categories);
 });
 
+async function getSubCategories() {
+  return await makeQuery('SELECT * FROM sub_category');
+}
+
+app.get('/getSubCategories', async function(request, response) {
+  let subCategories = await getSubCategories();
+  response.send(subCategories);
+});
+
 app.listen(process.env.PORT || 5000);
