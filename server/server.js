@@ -53,4 +53,13 @@ app.get('/getSubCategories', async function(request, response) {
   response.send(subCategories);
 });
 
+async function getCities() {
+  return await makeQuery('SELECT * FROM city');
+}
+
+app.get('/getCities', async function(request, response) {
+  let cites = await getCities();
+  response.send(cites);
+});
+
 app.listen(process.env.PORT || 5000);
