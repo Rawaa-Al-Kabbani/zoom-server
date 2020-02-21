@@ -17,4 +17,13 @@ function makeQuery(query) {
   });
 }
 
+async function getProducts() {
+  return await makeQuery('SELECT * FROM product');
+}
+
+app.get('/getProducts', async function(request, response) {
+  let products = await getProducts();
+  response.send(products);
+});
+
 app.listen(process.env.PORT || 5000);
