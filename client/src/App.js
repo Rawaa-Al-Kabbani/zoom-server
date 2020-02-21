@@ -14,7 +14,7 @@ function App() {
   };
   return (
     <div className="App">
-      <p>Hello zoom</p>
+      <p>Hello Zoom</p>
     </div>
   );
 }
