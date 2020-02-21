@@ -35,4 +35,13 @@ app.get('/getUsers', async function(request, response) {
   response.send(users);
 });
 
+async function getCategories() {
+  return await makeQuery('SELECT * FROM category');
+}
+
+app.get('/getCategories', async function(request, response) {
+  let categories = await getCategories();
+  response.send(categories);
+});
+
 app.listen(process.env.PORT || 5000);
