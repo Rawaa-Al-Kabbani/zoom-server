@@ -62,4 +62,21 @@ app.get('/getCities', async function(request, response) {
   response.send(cites);
 });
 
+async function getProductsForQuery() {
+  return await makeQuery(`SELECT zoom.product.title, zoom.product.description, zoom.sub_category.subcategoryname, zoom.category.categoryname FROM zoom.product
+INNER JOIN zoom.sub_category ON zoom.product.subcategoryid = zoom.sub_category.subcategoryid
+INNER JOIN zoom.category ON zoom.category.categoryid = zoom.sub_category.categoryid`);
+}
+
+app.post('/queryProducts', async function(request, response) {
+  const query = request.body.query.toLowerCase();
+  let products = await getProductsForQuery();
+  products = products.filter(product => {
+    return Object.values(product).some(value => {
+      return value.toLowerCase().indexOf(query) !== -1;
+    });
+  });
+  response.send(products);
+});
+
 app.listen(process.env.PORT || 5000);
