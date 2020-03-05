@@ -81,12 +81,17 @@ app.post('/queryProducts', async function (request, response) {
 });
 
 
-app.post('/signup', (request, response) => {
-  const sql = `INSERT INTO user (email, phonenumber) values ('${request.body.email}','${request.body.phonenumber}')`;
+app.post('/register', (request, response) => {
+
+  console.log(request.body);
+
+  const sql = `INSERT INTO user (email, auth_str, phonenumber) values ('${request.body.email}','${request.body.password}','${request.body.tel}')`;
   database.query(sql, (err, result) => {
-    if (err) console.log(err)
-    console.log(result)
-    result.effectedRowa > 0
+    if (err) {
+      console.log(err)
+      return response.status(500).send(err)
+    }
+    response.json({ sqlMessage: 'Registeration done' })
   })
 });
 
