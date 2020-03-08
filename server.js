@@ -19,7 +19,7 @@ function makeQuery(query) {
 }
 
 async function getProducts() {
-  return await makeQuery('SELECT * FROM product');
+  return await makeQuery('SELECT * FROM product ORDER BY productid DESC LIMIT 20');
 }
 
 app.get('/getProducts', async function (request, response) {
@@ -105,6 +105,17 @@ app.get('/getuser', (request, response) => {
 
   const sql = 'SELECT * FROM user WHERE email=? AND auth_str=?';
   database.query(sql, [email, password], (err, result) => {
+    if (err) response.send(err)
+    console.log(result)
+    response.send(result)
+  })
+
+});
+
+app.get('/getproduct', (request, response) => {
+
+  const sql = 'SELECT * FROM product WHERE productid=?';
+  database.query(sql, [request.query.id], (err, result) => {
     if (err) response.send(err)
     console.log(result)
     response.send(result)
