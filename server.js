@@ -19,7 +19,7 @@ function makeQuery(query) {
 }
 
 async function getProducts() {
-  return await makeQuery('SELECT * FROM product');
+  return await makeQuery('SELECT * FROM product ORDER BY productid DESC LIMIT 20');
 }
 
 app.get('/getProducts', async function(request, response) {
@@ -91,6 +91,19 @@ app.post('/signup', (request, response) => {
     console.log(result);
     result.effectedRowa > 0;
   });
+
+app.post('/register', (request, response) => {
+
+  console.log(request.body);
+
+  const sql = `INSERT INTO user (email, auth_str, phonenumber) values ('${request.body.email}','${request.body.password}','${request.body.tel}')`;
+  database.query(sql, (err, result) => {
+    if (err) {
+      console.log(err)
+      return response.status(500).send(err)
+    }
+    response.json({ sqlMessage: 'Registeration done' })
+  })
 });
 
 app.get('/getuser', (request, response) => {
@@ -108,4 +121,16 @@ app.get('/getuser', (request, response) => {
   });
 });
 
+app.get('/getproduct', (request, response) => {
+
+  const sql = 'SELECT * FROM product WHERE productid=?';
+  database.query(sql, [request.query.id], (err, result) => {
+    if (err) response.send(err)
+    console.log(result)
+    response.send(result)
+  })
+
+});
+
 app.listen(PORT, () => console.log(`Server is running on ${PORT}`));
+
