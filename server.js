@@ -1,9 +1,12 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
+const uniqueString = require('unique-string');
+const fileUpload = require('express-fileupload');
 const database = require('./database.js');
 const PORT = process.env.PORT || 5000;
-
 const app = express();
+app.use(fileUpload());
 app.use(express.json());
 
 function makeQuery(query) {
@@ -19,11 +22,31 @@ function makeQuery(query) {
 }
 
 async function getProducts() {
-  return await makeQuery('SELECT * FROM product ORDER BY productid DESC LIMIT 20');
+  return await makeQuery('SELECT * FROM product ORDER BY productid DESC ');
 }
 
-app.get('/getProducts', async function (request, response) {
+app.get('/getProducts', async function (req, response) {
   let products = await getProducts();
+  response.send(products);
+});
+
+async function getUserItems(id) {
+  return await makeQuery(`SELECT * FROM product WHERE userid=${id} ORDER BY productid DESC `);
+}
+
+app.get('/getUsersItems', async function (req, response) {
+  const id = req.query.id;
+  let products = await getUserItems(id);
+  response.send(products);
+});
+
+async function getItemById(id) {
+  return await makeQuery(`SELECT * FROM product WHERE productid=${id}`);
+}
+
+app.get('/getitembyid', async function (req, response) {
+  const id = req.query.id;
+  let products = await getItemById(id);
   response.send(products);
 });
 
@@ -31,7 +54,7 @@ async function getUsers() {
   return await makeQuery('SELECT * FROM user');
 }
 
-app.get('/getUsers', async function (request, response) {
+app.get('/getUsers', async function (req, response) {
   let users = await getUsers();
   response.send(users);
 });
@@ -40,7 +63,7 @@ async function getCategories() {
   return await makeQuery('SELECT * FROM category');
 }
 
-app.get('/getCategories', async function (request, response) {
+app.get('/getCategories', async function (req, response) {
   let categories = await getCategories();
   response.send(categories);
 });
@@ -49,7 +72,7 @@ async function getSubCategories() {
   return await makeQuery('SELECT * FROM sub_category');
 }
 
-app.get('/getSubCategories', async function (request, response) {
+app.get('/getSubCategories', async function (req, response) {
   let subCategories = await getSubCategories();
   response.send(subCategories);
 });
@@ -58,7 +81,7 @@ async function getCities() {
   return await makeQuery('SELECT * FROM city');
 }
 
-app.get('/getCities', async function (request, response) {
+app.get('/getCities', async function (req, response) {
   let cites = await getCities();
   response.send(cites);
 });
@@ -69,8 +92,8 @@ INNER JOIN zoom.sub_category ON zoom.product.subcategoryid = zoom.sub_category.s
 INNER JOIN zoom.category ON zoom.category.categoryid = zoom.sub_category.categoryid`);
 }
 
-app.post('/queryProducts', async function (request, response) {
-  const query = request.body.query.toLowerCase();
+app.post('/queryProducts', async function (req, response) {
+  const query = req.body.query.toLowerCase();
   let products = await getProductsForQuery();
   products = products.filter(product => {
     return Object.values(product).some(value => {
@@ -80,12 +103,11 @@ app.post('/queryProducts', async function (request, response) {
   response.send(products);
 });
 
+//REGISTER
+app.post('/register', (req, response) => {
 
-app.post('/register', (request, response) => {
 
-  console.log(request.body);
-
-  const sql = `INSERT INTO user (email, auth_str, phonenumber) values ('${request.body.email}','${request.body.password}','${request.body.tel}')`;
+  const sql = `INSERT INTO user (email, auth_str, phonenumber) values ('${req.body.email}','${req.body.password}','${req.body.tel}')`;
   database.query(sql, (err, result) => {
     if (err) {
       console.log(err)
@@ -95,32 +117,129 @@ app.post('/register', (request, response) => {
   })
 });
 
-app.get('/getuser', (request, response) => {
+//LOGIN
+app.get('/getuser', (req, response) => {
 
-  const email = request.query.email;
-  const password = request.query.password;
-
-  console.log(request.query.email)
-  console.log(request.query.password)
+  const email = req.query.email;
+  const password = req.query.password;
 
   const sql = 'SELECT * FROM user WHERE email=? AND auth_str=?';
   database.query(sql, [email, password], (err, result) => {
     if (err) response.send(err)
-    console.log(result)
-    response.send(result)
+
+    if (Array.isArray(result) && result.length === 0) {
+      console.log("Bad request", result.length)
+      return response.status(400).send('Invalid email or password !!!')
+    }
+    return response.send(result)
   })
 
 });
 
-app.get('/getproduct', (request, response) => {
+//FOR PRODUCT DETAILS PAGE
+app.get('/getproduct', (req, response) => {
 
-  const sql = 'SELECT * FROM product WHERE productid=?';
-  database.query(sql, [request.query.id], (err, result) => {
+  const sql = 'SELECT product.* , user.phonenumber FROM product LEFT JOIN user ON product.userid=user.userid WHERE productid=?';
+  database.query(sql, [req.query.id], (err, result) => {
     if (err) response.send(err)
-    console.log(result)
     response.send(result)
   })
 
 });
 
-app.listen(PORT, () => console.log(`Server is running on ${PORT}`));
+//POST NEW ITEM
+app.post('/postitem', (req, res) => {
+
+  const userid = req.body.userid;
+  const title = req.body.title;
+  const city = req.body.city;
+  const category = req.body.category;
+  const price = req.body.price;
+  const desc = req.body.desc;
+
+  const images = [req.files.image1, req.files.image2, req.files.image3, req.files.image4, req.files.image5];
+
+  const uniqueName = uniqueString();
+  const imageName = images.map(image => {
+    if (image !== undefined) {
+      return `http://127.0.0.1:5500/images/${uniqueName + image.name}`;
+    } return ''
+
+  })
+  console.log(imageName)
+
+  images.map(image => {
+
+    if (image !== undefined) {
+      const imgName = image.name;
+      image.mv(`images/${uniqueName + imgName}`);
+    } return null
+
+  })
+
+  const sql = `INSERT INTO product (userid,title, description, price, city,category, imageurl_1,imageurl_2,imageurl_3,imageurl_4,imageurl_5) values 
+  ('${userid}','${title}','${desc}','${price}','${city}','${category}','${imageName[0]}','${imageName[1]}','${imageName[2]}','${imageName[3]}','${imageName[4]}')`;
+
+  database.query(sql, (err, result) => {
+    if (err) {
+      console.log(err)
+      return res.status(400).send(err.code)
+    }
+    res.json({
+      sqlMessage: 'Item posted'
+    })
+  })
+});
+
+//UPDATE ITEM
+app.put('/updatepost', (req, res) => {
+
+  const id = req.query.id
+
+  const sql = `UPDATE product SET title='${req.body.title}', price='${req.body.price}', city='${req.body.city}', description='${req.body.desc}' WHERE productid=${id}`;
+  database.query(sql, (err, result) => {
+    if (err) {
+      console.log(err)
+      return res.status(400).send(err)
+    }
+    res.json({
+      sqlMessage: 'done'
+    })
+  })
+
+});
+
+//DELETE ITEM
+app.delete('/deleteUserItem', (req, res) => {
+
+  const images = req.body;
+
+  //Delete Images from Images Folder
+  images.map(image => {
+
+    const filepath = image;
+
+    const filename = path.parse(filepath).base;
+
+    if (image !== 'NULL') {
+
+      fs.unlink(`${__dirname}/images/${filename}`, err => {
+        if (err) console.log(err);
+      })
+    }
+    return null
+  })
+  //
+  const id = req.query.id;
+  const sql = `DELETE FROM product WHERE productid=${id}`;
+  database.query(sql, (err, result) => {
+    if (err) {
+      console.log(err)
+      return res.status(400).json({ message: 'error' });
+
+    }
+    return res.json({ message: 'Item deleted Successfully' })
+  })
+
+})
+app.listen(PORT, () => console.log(`Server is running on ${PORT}`));   
