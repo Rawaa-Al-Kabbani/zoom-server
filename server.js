@@ -11,7 +11,7 @@ app.use(express.json());
 
 function makeQuery(query) {
   return new Promise((resolve, reject) => {
-    database.query(query, function (err, result, fields) {
+    database.query(query, function(err, result, fields) {
       if (err) {
         reject(err);
       } else {
@@ -25,7 +25,7 @@ async function getProducts() {
   return await makeQuery('SELECT * FROM product ORDER BY productid DESC ');
 }
 
-app.get('/getProducts', async function (req, response) {
+app.get('/getProducts', async function(request, response) {
   let products = await getProducts();
   response.send(products);
 });
@@ -54,7 +54,7 @@ async function getUsers() {
   return await makeQuery('SELECT * FROM user');
 }
 
-app.get('/getUsers', async function (req, response) {
+app.get('/getUsers', async function(request, response) {
   let users = await getUsers();
   response.send(users);
 });
@@ -63,7 +63,8 @@ async function getCategories() {
   return await makeQuery('SELECT * FROM category');
 }
 
-app.get('/getCategories', async function (req, response) {
+
+app.get('/getCategories', async function(request, response) {
   let categories = await getCategories();
   response.send(categories);
 });
@@ -72,49 +73,58 @@ async function getSubCategories() {
   return await makeQuery('SELECT * FROM sub_category');
 }
 
-app.get('/getSubCategories', async function (req, response) {
+
+app.get('/getSubCategories', async function(request, response) {
   let subCategories = await getSubCategories();
   response.send(subCategories);
 });
 
 async function getCities() {
-  return await makeQuery('SELECT * FROM city');
+  return await makeQuery('SELECT zoom.city.cityname FROM city ORDER BY zoom.city.cityname ASC');
 }
 
-app.get('/getCities', async function (req, response) {
+
+app.get('/getCities', async function(request, response) {
   let cites = await getCities();
   response.send(cites);
 });
 
 async function getProductsForQuery() {
-  return await makeQuery(`SELECT zoom.product.title, zoom.product.description, zoom.sub_category.subcategoryname, zoom.category.categoryname FROM zoom.product
+  return await makeQuery(`SELECT zoom.product.title, zoom.product.description, zoom.product.price, zoom.product.date, zoom.product.image, zoom.sub_category.subcategoryname, zoom.category.categoryname, zoom.city.cityname, zoom.product.productid FROM zoom.product
 INNER JOIN zoom.sub_category ON zoom.product.subcategoryid = zoom.sub_category.subcategoryid
-INNER JOIN zoom.category ON zoom.category.categoryid = zoom.sub_category.categoryid`);
+INNER JOIN zoom.category ON zoom.category.categoryid = zoom.sub_category.categoryid
+INNER JOIN zoom.user ON zoom.user.userid = zoom.product.userid
+INNER JOIN zoom.city ON zoom.city.cityid = zoom.user.cityid`);
 }
 
-app.post('/queryProducts', async function (req, response) {
-  const query = req.body.query.toLowerCase();
+app.post('/queryProducts', async function(request, response) {
+  const searchFields = ['title', 'description', 'subcategoryname', 'categoryname', 'cityname'];
+  const query = request.body.query.toLowerCase();
   let products = await getProductsForQuery();
-  products = products.filter(product => {
-    return Object.values(product).some(value => {
-      return value.toLowerCase().indexOf(query) !== -1;
+  if (query.length > 0) {
+    products = products.filter(product => {
+      for (let field of searchFields) {
+        if (product[field].toLowerCase().indexOf(query) !== -1) {
+          return true;
+        }
+      }
+      return false;
     });
-  });
+  }
   response.send(products);
 });
 
 //REGISTER
 app.post('/register', (req, response) => {
 
-
   const sql = `INSERT INTO user (email, auth_str, phonenumber) values ('${req.body.email}','${req.body.password}','${req.body.tel}')`;
   database.query(sql, (err, result) => {
     if (err) {
-      console.log(err)
-      return response.status(500).send(err)
+      console.log(err);
+      return response.status(500).send(err);
     }
-    response.json({ sqlMessage: 'Registeration done' })
-  })
+    response.json({ sqlMessage: 'Registeration done' });
+  });
 });
 
 //LOGIN
