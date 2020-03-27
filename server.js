@@ -14,7 +14,6 @@ function makeQuery(query, args = []) {
   return new Promise((resolve, reject) => {
 
     database.query(query, args, function(err, result, fields) {
->>>>>> master
       if (err) {
         reject(err);
       } else {
