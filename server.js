@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const uniqueString = require('unique-string');
 const fileUpload = require('express-fileupload');
+const dateTime = require('date-time');
 const database = require('./database.js');
 const PORT = process.env.PORT || 5000;
 const app = express();
@@ -11,7 +12,9 @@ app.use(express.json());
 
 function makeQuery(query, args = []) {
   return new Promise((resolve, reject) => {
+
     database.query(query, args, function(err, result, fields) {
+>>>>>> master
       if (err) {
         reject(err);
       } else {
@@ -25,7 +28,7 @@ async function getProducts() {
   return await makeQuery('SELECT * FROM product ORDER BY date DESC');
 }
 
-app.get('/getProducts', async function(request, response) {
+app.get('/getProducts', async function (request, response) {
   let products = await getProducts();
   response.send(products);
 });
@@ -54,7 +57,7 @@ async function getUsers() {
   return await makeQuery('SELECT * FROM user');
 }
 
-app.get('/getUsers', async function(request, response) {
+app.get('/getUsers', async function (request, response) {
   let users = await getUsers();
   response.send(users);
 });
@@ -62,6 +65,7 @@ app.get('/getUsers', async function(request, response) {
 async function getCategories() {
   return await makeQuery('SELECT * FROM category');
 }
+
 
 app.get('/getCategories', async function(request, response) {
   let categories = await getCategories();
@@ -100,20 +104,23 @@ async function getCities() {
   return await makeQuery('SELECT zoom.city.cityname FROM city ORDER BY zoom.city.cityname ASC');
 }
 
+
 app.get('/getCities', async function(request, response) {
   let cites = await getCities();
   response.send(cites);
 });
 
 async function getProductsForQuery() {
-  return await makeQuery(`SELECT zoom.product.title, zoom.product.description, zoom.product.price, zoom.product.date, zoom.product.imageurl_1, zoom.sub_category.subcategoryname, zoom.category.categoryname, zoom.product.city, zoom.product.productid FROM zoom.product
+  return await makeQuery(`SELECT zoom.product.title, zoom.product.description, zoom.product.price, zoom.product.date, zoom.product.imageurl_1, zoom.sub_category.subcategoryname, zoom.category.categoryname, zoom.city.cityname, zoom.product.productid FROM zoom.product
 INNER JOIN zoom.sub_category ON zoom.product.subcategoryid = zoom.sub_category.subcategoryid
 INNER JOIN zoom.category ON zoom.category.categoryid = zoom.sub_category.categoryid
-ORDER BY date DESC`);
+INNER JOIN zoom.user ON zoom.user.userid = zoom.product.userid
+INNER JOIN zoom.city ON zoom.city.cityname = zoom.product.city`);
 }
 
-app.post('/queryProducts', async function(request, response) {
-  const searchFields = ['title', 'description', 'subcategoryname', 'categoryname', 'city'];
+app.post('/queryProducts', async function (request, response) {
+  const searchFields = ['title', 'description', 'subcategoryname', 'categoryname', 'cityname'];
+
   const query = request.body.query.toLowerCase();
   let products = await getProductsForQuery();
   if (query.length > 0) {
@@ -131,7 +138,9 @@ app.post('/queryProducts', async function(request, response) {
 
 //REGISTER
 app.post('/register', (req, response) => {
-  const sql = `INSERT INTO user (email, auth_str, phonenumber) values ('${req.body.email}','${req.body.password}','${req.body.tel}')`;
+
+  const sql = `INSERT INTO user (email, auth_str,username, phonenumber) values ('${req.body.email}','${req.body.password}','${req.body.username}','${req.body.tel}')`;
+
   database.query(sql, (err, result) => {
     if (err) {
       console.log(err);
@@ -175,6 +184,7 @@ app.post('/postitem', (req, res) => {
   const city = req.body.city;
   const category = req.body.category;
   const price = req.body.price;
+  const date = dateTime();
   const desc = req.body.desc;
 
   const images = [
@@ -188,22 +198,23 @@ app.post('/postitem', (req, res) => {
   const uniqueName = uniqueString();
   const imageName = images.map(image => {
     if (image !== undefined) {
-      return `http://127.0.0.1:5500/images/${uniqueName + image.name}`;
-    }
-    return '';
-  });
-  console.log(imageName);
+      return `http://127.0.0.1:5500/images/${uniqueName + '__' + image.name}`;
+    } return null
+
+  })
+
 
   images.map(image => {
     if (image !== undefined) {
       const imgName = image.name;
-      image.mv(`images/${uniqueName + imgName}`);
-    }
-    return null;
-  });
+      image.mv(`images/${uniqueName + '__' + imgName}`);
+    } return null
 
-  const sql = `INSERT INTO product (userid,title, description, price, city,category, imageurl_1,imageurl_2,imageurl_3,imageurl_4,imageurl_5) values 
-  ('${userid}','${title}','${desc}','${price}','${city}','${category}','${imageName[0]}','${imageName[1]}','${imageName[2]}','${imageName[3]}','${imageName[4]}')`;
+  })
+
+
+  const sql = `INSERT INTO product (userid,title, description, price,date, city,subcategoryid, imageurl_1,imageurl_2,imageurl_3,imageurl_4,imageurl_5) values 
+  ('${userid}','${title}','${desc}','${price}','${date}','${city}','${category}','${imageName[0]}','${imageName[1]}','${imageName[2]}','${imageName[3]}','${imageName[4]}')`;
 
   database.query(sql, (err, result) => {
     if (err) {
@@ -235,14 +246,15 @@ app.put('/updatepost', (req, res) => {
 //DELETE ITEM
 app.delete('/deleteUserItem', (req, res) => {
   const images = req.body;
-
+  console.log(images)
   //Delete Images from Images Folder
   images.map(image => {
     const filepath = image;
 
     const filename = path.parse(filepath).base;
 
-    if (image !== 'NULL') {
+    if (image !== 'null') {
+
       fs.unlink(`${__dirname}/images/${filename}`, err => {
         if (err) console.log(err);
       });
