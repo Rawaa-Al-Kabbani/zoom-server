@@ -13,8 +13,7 @@ app.use(express.json());
 function makeQuery(query, args = []) {
   return new Promise((resolve, reject) => {
 
-    database.query(query, args, function(err, result, fields) {
->>>>>> master
+    database.query(query, args, function (err, result, fields) {
       if (err) {
         reject(err);
       } else {
@@ -37,7 +36,7 @@ async function getUserItems(id) {
   return await makeQuery(`SELECT * FROM product WHERE userid=${id} ORDER BY productid DESC `);
 }
 
-app.get('/getUsersItems', async function(req, response) {
+app.get('/getUsersItems', async function (req, response) {
   const id = req.query.id;
   let products = await getUserItems(id);
   response.send(products);
@@ -47,7 +46,7 @@ async function getItemById(id) {
   return await makeQuery(`SELECT * FROM product WHERE productid=${id}`);
 }
 
-app.get('/getitembyid', async function(req, response) {
+app.get('/getitembyid', async function (req, response) {
   const id = req.query.id;
   let products = await getItemById(id);
   response.send(products);
@@ -67,7 +66,7 @@ async function getCategories() {
 }
 
 
-app.get('/getCategories', async function(request, response) {
+app.get('/getCategories', async function (request, response) {
   let categories = await getCategories();
   response.send(categories);
 });
@@ -79,7 +78,7 @@ async function getSubCategories(category) {
   );
 }
 
-app.post('/getSubCategories', async function(request, response) {
+app.post('/getSubCategories', async function (request, response) {
   const category = request.body.category;
   let subCategories = await getSubCategories(category);
   response.send(subCategories);
@@ -95,7 +94,7 @@ ORDER BY zoom.product.date DESC`,
   );
 }
 
-app.post('/getSubCategoryProducts', async function(request, response) {
+app.post('/getSubCategoryProducts', async function (request, response) {
   const category = request.body.category;
   let subCategoryProducts = await getSubCategoryProducts(category);
   response.send(subCategoryProducts);
@@ -105,7 +104,7 @@ async function getCities() {
 }
 
 
-app.get('/getCities', async function(request, response) {
+app.get('/getCities', async function (request, response) {
   let cites = await getCities();
   response.send(cites);
 });
